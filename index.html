@@ -346,10 +346,9 @@ async function loadRoads() {
       inkluderAntall:'false'
     });
 
-    const url=
-      'https://nvdbapiles.atlas.vegvesen.no/vegnett/api/v4/veglenkesekvenser/segmentert?'+
-      params.toString();
-
+const url=
+  'https://nvdbapiles.atlas.vegvesen.no/vegnett/api/v4/veglenkesekvenser?'+
+  params.toString();
     const response=await fetch(url,{
       method:'GET',
       headers:{
