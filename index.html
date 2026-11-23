@@ -57,13 +57,14 @@
       <span class="legend-item"><i class="swatch" style="background:#d94b43"></i> E/R – europavei/riksvei</span>
       <span class="legend-item"><i class="swatch" style="background:#e5a13b"></i> F – fylkesvei</span>
       <span class="legend-item"><i class="swatch" style="background:#53a0d8"></i> K – kommunal</span>
-      <span class="legend-item"><i class="swatch" style="background:#54b477"></i> P – privat</span>
+      <span class="legend-item"><i class="swatch" style="background:#54b477"></i> P/S &ndash; privat / skogsbilveg</span>
       <span class="legend-item"><i class="swatch" style="background:#a8a8a8"></i> Ukjent/annen</span>
       <span class="legend-item">Privat betyr ikke automatisk stengt. Sjekk skilt og lokale regler.</span>
     </div>
   </footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="nvdb.js"></script>
   <script>
   (() => {
     'use strict';
@@ -198,7 +199,7 @@
 
     function roadStyle(properties) {
       const code = properties.categoryCode;
-      const colours = { E:'#d94b43', R:'#d94b43', F:'#e5a13b', K:'#53a0d8', P:'#54b477' };
+      const colours = { E:'#d94b43', R:'#d94b43', F:'#e5a13b', K:'#53a0d8', P:'#54b477', S:'#54b477' };
       return {
         color:colours[code] || '#a8a8a8',
         weight:(code === 'E' || code === 'R') ? 5 : 3.5,
@@ -278,44 +279,16 @@
       }
     });
 
-    function geometryToLatLngs(geometry) {
-      if (!geometry) return null;
-      if (geometry.type && geometry.coordinates) {
-        if (Number(geometry.srid || 4326) !== 4326) throw new Error(`Uventet GeoJSON-SRID ${geometry.srid}`);
-        return geometry;
-      }
-      const wkt = geometry.wkt || geometry.verdi || geometry.value;
-      if (typeof wkt !== 'string') return null;
-      const srid = Number(geometry.srid || 4326);
-      if (srid !== 4326) throw new Error(`NVDB returnerte SRID ${srid}, ikke 4326. Avbryter for å unngå feilplasserte veier.`);
-      const typeMatch = wkt.trim().match(/^([A-Za-z]+)\s*(?:Z|M|ZM)?\s*/i);
-      if (!typeMatch) return null;
-      const type = typeMatch[1].toUpperCase();
-      const body = wkt.trim().slice(typeMatch[0].length);
-      const groups = [...body.matchAll(/\(([^()]+)\)/g)].map(match => match[1]);
-      const rawGroups = groups.length ? groups : [body.replace(/[()]/g, '')];
-      const lines = rawGroups.map(group => group.split(',').map(pair => {
-        const nums = pair.trim().split(/\s+/).map(Number);
-        if (nums.length < 2 || !Number.isFinite(nums[0]) || !Number.isFinite(nums[1])) return null;
-        return [nums[0], nums[1]];
-      }).filter(Boolean)).filter(line => line.length >= 2);
-      if (!lines.length) return null;
-      if (type === 'LINESTRING') return { type:'LineString', coordinates:lines[0] };
-      if (type === 'MULTILINESTRING') return { type:'MultiLineString', coordinates:lines };
-      return null;
-    }
+    function geometryToLatLngs(geometry) { return NvdbGeometry.parseWkt(geometry); }
 
     function segmentProperties(segment) {
       const vsr = segment.vegsystemreferanse || {};
       const system = vsr.vegsystem || {};
-      const code = String(system.vegkategori || segment.vegkategori || '').toUpperCase();
-      const categoryNames = {
-        E:'Europavei', R:'Riksvei', F:'Fylkesvei', K:'Kommunal vei', P:'Privat vei'
-      };
+      const category = NvdbGeometry.categoryFor(segment);
       const address = segment.adresse || {};
       return {
-        categoryCode:code,
-        roadCategory:categoryNames[code] || (code ? `Kategori ${code}` : 'Ukjent kategori'),
+        categoryCode:category.categoryCode,
+        roadCategory:category.roadCategory,
         roadName:address.navn || segment.navn || '',
         reference:vsr.kortform || '',
         roadType:segment.typeVeg || '',
@@ -381,7 +354,8 @@
       let rawSegmentCount = 0;
       let missingGeometryCount = 0;
       let lastResponseInfo = 'Ingen svarstruktur mottatt';
-      const maxPages = 5;
+      let hasMorePages = false;
+      const maxPages = 100;
 
       try {
         while (pageCount < maxPages) {
@@ -390,7 +364,6 @@
           url.searchParams.set('kartutsnitt', bbox);
           url.searchParams.set('srid', '4326');
           url.searchParams.set('antall', '1000');
-          url.searchParams.set('sortert', 'false');
           url.searchParams.set('inkluderAntall', 'false');
           if (start) url.searchParams.set('start', start);
 
@@ -407,8 +380,7 @@
             if (activeFetchController === controller) activeFetchController = null;
           }
           if (!response.ok) {
-            const body = await response.text().catch(() => '');
-            throw new Error(`NVDB svarte med HTTP ${response.status}${body ? ': ' + body.slice(0,180) : ''}`);
+            throw await NvdbGeometry.errorFromResponse(response);
           }
           const data = await response.json();
           if (myRequest !== requestSerial || !roadsEnabled) return;
@@ -428,6 +400,7 @@
           }
           pageCount += 1;
           const next = nextPageStart(data);
+          hasMorePages = pageCount === maxPages && Boolean(next);
           if (!next || next === start || segments.length === 0) break;
           start = next;
         }
@@ -435,7 +408,7 @@
         if (myRequest !== requestSerial) return;
         roadLayer.clearLayers();
         roadLayer.addData({ type:'FeatureCollection', features:collected });
-        const hasMore = pageCount === maxPages;
+        const hasMore = hasMorePages;
         if (!collected.length) {
           showStatus(`NVDB svarte, men ingen veglinjer kunne tegnes i dette kartutsnittet. ${lastResponseInfo}. Segmenter lest: ${rawSegmentCount}; uten geometri: ${missingGeometryCount}.`);
         } else {
