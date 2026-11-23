@@ -339,12 +339,11 @@ async function loadRoads() {
     ].map(n=>n.toFixed(6)).join(',');
 
     const params=new URLSearchParams({
-      kartutsnitt:bbox,
-      srid:'4326',
-      antall:'1000',
-      sortert:'false',
-      inkluderAntall:'false'
-    });
+  kommune:'4216',
+  srid:'4326',
+  antall:'1000',
+  inkluderAntall:'false'
+});
 
 const url=
   'https://nvdbapiles.atlas.vegvesen.no/vegnett/api/v4/veglenkesekvenser?'+
