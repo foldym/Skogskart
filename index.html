@@ -8,475 +8,844 @@
 <title>Skogskart</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-* { box-sizing:border-box; }
-body { margin:0; font-family:Arial,sans-serif; background:#17251c; color:white; }
-header { height:55px; display:flex; align-items:center; justify-content:space-between; padding:0 15px; }
-header strong { font-size:20px; letter-spacing:1px; }
-header span { color:#b5c9b4; font-size:11px; }
-#map { height:calc(100dvh - 115px); width:100%; background:#dce5d3; }
-footer { height:60px; display:flex; align-items:center; justify-content:space-around; gap:5px; padding:5px; }
-button { background:#344c3b; color:white; border:1px solid #607664; border-radius:9px; padding:10px 9px; font-size:12px; font-weight:bold; white-space:nowrap; }
-button.active { background:#a0b77e; color:#17251c; }
-button:disabled { opacity:.55; }
-#status { position:absolute; z-index:800; bottom:68px; left:10px; right:10px; width:max-content; max-width:calc(100% - 20px); background:#17251cee; color:#fff; padding:8px 12px; border-radius:8px; font-size:11px; line-height:1.4; pointer-events:none; }
-#legend { display:none; position:absolute; z-index:800; top:63px; left:10px; background:#17251cee; padding:9px 11px; border-radius:8px; font-size:11px; line-height:1.9; }
-.swatch { display:inline-block; width:23px; height:5px; margin-right:7px; vertical-align:middle; border-radius:3px; }
-.marker { font-size:27px; text-align:center; }
-.leaflet-popup-content button { color:white; background:#344c3b; border:0; padding:7px 10px; }
-.leaflet-interactive { cursor:pointer; }
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  background: #17251c;
+  color: white;
+}
+header {
+  height: 55px;
+  min-height: 55px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 15px;
+  gap: 8px;
+}
+header strong { font-size: 20px; letter-spacing: 1px; }
+header span { color: #b5c9b4; font-size: 11px; text-align: right; }
+#map {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  background: #dce5d3;
+}
+footer {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 5px;
+  padding: 5px;
+  background: #17251c;
+}
+button {
+  background: #344c3b;
+  color: white;
+  border: 1px solid #607664;
+  border-radius: 9px;
+  padding: 10px 9px;
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+button.active { background: #a0b77e; color: #17251c; }
+button:disabled { opacity: .55; }
+#status {
+  position: absolute;
+  z-index: 900;
+  left: 10px;
+  bottom: 72px;
+  max-width: calc(100% - 20px);
+  background: #17251cee;
+  color: #fff;
+  padding: 8px 11px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.35;
+  pointer-events: none;
+}
+#legend {
+  display: none;
+  position: absolute;
+  z-index: 850;
+  top: 63px;
+  left: 10px;
+  background: #17251cee;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.9;
+  pointer-events: none;
+}
+.swatch {
+  display: inline-block;
+  width: 23px;
+  height: 5px;
+  margin-right: 7px;
+  vertical-align: middle;
+  border-radius: 3px;
+}
+.marker { font-size: 27px; text-align: center; }
+.leaflet-popup-content button { color: white; background: #344c3b; border: 0; padding: 7px 10px; }
+.leaflet-interactive { cursor: pointer; }
+@media (max-width: 380px) {
+  footer { gap: 3px; padding: 4px; }
+  button { padding: 9px 6px; font-size: 11px; }
+  header strong { font-size: 18px; }
+}
 </style>
 </head>
 <body>
 <header>
-<strong>🌲 SKOGSKART</strong>
-<span>DITT TURKART · NORGE</span>
+  <strong>🌲 SKOGSKART</strong>
+  <span>DITT TURKART · NORGE</span>
 </header>
 <div id="map"></div>
 <div id="status">Kartverket · Topografisk kart</div>
 <div id="legend">
-<div><i class="swatch" style="background:#2485f5"></i>Offentlig hovedvei</div>
-<div><i class="swatch" style="background:#c7d3dc"></i>Fylkes-/kommunal vei</div>
-<div><i class="swatch" style="background:#ff9d22"></i>Privat vei</div>
-<div><i class="swatch" style="background:#42c66b"></i>Skogsbilvei</div>
-<div><i class="swatch" style="background:#d66bdb"></i>Ukjent kategori</div>
+  <div><i class="swatch" style="background:#2685ff"></i>Europavei / riksvei</div>
+  <div><i class="swatch" style="background:#d9e4ed"></i>Fylkesvei / kommunal vei</div>
+  <div><i class="swatch" style="background:#ff941f"></i>Privat vei</div>
+  <div><i class="swatch" style="background:#39d477"></i>Skogsbilvei</div>
+  <div><i class="swatch" style="background:#e66bdc"></i>Ukjent vegkategori</div>
 </div>
 <footer>
-<button id="add">📍 Lagre plass</button>
-<button id="gps">◎ GPS</button>
-<button id="layers">🗺 Kartlag</button>
-<button id="roads">🛣 Veier</button>
+  <button id="add">📍 Lagre plass</button>
+  <button id="gps">◎ GPS</button>
+  <button id="layers">🗺 Kartlag</button>
+  <button id="roads">🛣 Veier</button>
 </footer>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.11.0/proj4.min.js"></script>
 <script>
-const map = L.map('map').setView([58.3308,8.2323],12);
+'use strict';
+
+// ---------- Kart og grunnlag ----------
+const map = L.map('map', { preferCanvas: true }).setView([58.3308, 8.2323], 12);
 const statusBox = document.getElementById('status');
+const legendBox = document.getElementById('legend');
+const roadsButton = document.getElementById('roads');
 
 const topo = L.tileLayer.wms(
   'https://wms.geonorge.no/skwms1/wms.topo',
-  {layers:'topo',format:'image/png',transparent:false,version:'1.3.0',attribution:'Kartverket / Geonorge'}
+  {
+    layers: 'topo',
+    format: 'image/png',
+    transparent: false,
+    version: '1.3.0',
+    attribution: 'Kartverket / Geonorge'
+  }
 );
+
 const satellite = L.tileLayer(
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  {attribution:'Esri, Maxar, Earthstar Geographics'}
+  { attribution: 'Esri, Maxar, Earthstar Geographics' }
 );
+
 topo.addTo(map);
 
-const saved = JSON.parse(localStorage.getItem('skogskart') || '[]');
-let markers = [];
+let baseLayer = 'topo';
+let gpsMarker = null;
 let adding = false;
-let satelliteOn = false;
 let roadsLayer = null;
 let roadsVisible = false;
 let roadsLoading = false;
+let roadsNeedRefresh = false;
+let roadsBoundsKey = '';
 
-// NVDB can return ETRS89 / UTM coordinates.
-const utm33 = '+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs +type=crs';
-const utm32 = '+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs +type=crs';
-proj4.defs('EPSG:5973',utm33);
-proj4.defs('EPSG:5972',utm32);
-proj4.defs('EPSG:6173',utm33);
-proj4.defs('EPSG:25833',utm33);
-proj4.defs('EPSG:25832',utm32);
-proj4.defs('EPSG:32633','+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs +type=crs');
-proj4.defs('EPSG:32632','+proj=utm +zone=32 +datum=WGS84 +units=m +no_defs +type=crs');
-
-function saveData() {
-  localStorage.setItem('skogskart',JSON.stringify(saved));
+// ---------- Trygg håndtering av lagrede steder ----------
+function loadSavedPlaces() {
+  try {
+    const value = JSON.parse(localStorage.getItem('skogskart') || '[]');
+    if (!Array.isArray(value)) return [];
+    return value.filter(p => p && typeof p.name === 'string' &&
+      Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng)));
+  } catch (error) {
+    console.warn('Kunne ikke lese lagrede steder:', error);
+    return [];
+  }
 }
 
-function escapeText(s) {
-  return String(s).replace(/[&<>"']/g,c=>({
-    '&':'&amp;',
-    '<':'&lt;',
-    '>':'&gt;',
-    '"':'&quot;',
-    "'":'&#39;'
-  }[c]));
+const saved = loadSavedPlaces();
+let markers = [];
+
+function saveData() {
+  try {
+    localStorage.setItem('skogskart', JSON.stringify(saved));
+    return true;
+  } catch (error) {
+    alert('Kunne ikke lagre stedet på denne enheten. Kontroller ledig lagringsplass.');
+    console.error('Lagring feilet:', error);
+    return false;
+  }
+}
+
+function escapeText(value) {
+  return String(value).replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
 }
 
 function drawMarkers() {
-  markers.forEach(m=>map.removeLayer(m));
-  markers=[];
-  saved.forEach((p,i)=>{
-    const marker=L.marker([p.lat,p.lng],{
-      icon:L.divIcon({
-        className:'marker',
-        html:'⛺',
-        iconSize:[32,32],
-        iconAnchor:[16,16]
+  markers.forEach(marker => map.removeLayer(marker));
+  markers = [];
+
+  saved.forEach((place, index) => {
+    const marker = L.marker([Number(place.lat), Number(place.lng)], {
+      icon: L.divIcon({
+        className: 'marker',
+        html: '⛺',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
       })
     }).addTo(map);
 
     marker.bindPopup(
-      '<b>⛺ '+escapeText(p.name)+'</b><br>'+
-      escapeText(p.note || 'Eget tursted')+
-      '<br><button onclick="deletePlace('+i+')">Slett stedet</button>'
+      '<b>⛺ ' + escapeText(place.name) + '</b><br>' +
+      escapeText(place.note || 'Eget tursted') +
+      '<br><button onclick="deletePlace(' + index + ')">Slett stedet</button>'
     );
     markers.push(marker);
   });
 }
 
-window.deletePlace=function(i) {
-  if(confirm('Slette dette stedet?')) {
-    saved.splice(i,1);
-    saveData();
-    drawMarkers();
+window.deletePlace = function(index) {
+  if (!Number.isInteger(index) || index < 0 || index >= saved.length) return;
+  if (confirm('Slette dette stedet?')) {
+    saved.splice(index, 1);
+    if (saveData()) drawMarkers();
   }
 };
 
-document.getElementById('add').onclick=function(){
-  adding=!adding;
-  this.classList.toggle('active',adding);
-  statusBox.textContent=adding
-    ?'Trykk på kartet for å lagre et sted'
-    :'Kartverket · Topografisk kart';
+document.getElementById('add').onclick = function() {
+  adding = !adding;
+  this.classList.toggle('active', adding);
+  statusBox.textContent = adding
+    ? 'Trykk på kartet for å lagre et sted'
+    : 'Kartverket · Topografisk kart';
 };
 
-map.on('click',function(e){
-  if(!adding)return;
-  const name=prompt('Navn på teltplassen:','Min teltplass');
-  if(!name)return;
-  const note=prompt('Notat (valgfritt):','');
+map.on('click', function(event) {
+  if (!adding) return;
+
+  const name = prompt('Navn på teltplassen:', 'Min teltplass');
+  if (!name || !name.trim()) return;
+  const note = prompt('Notat (valgfritt):', '');
 
   saved.push({
-    name:name,
-    note:note || '',
-    lat:e.latlng.lat,
-    lng:e.latlng.lng
+    name: name.trim(),
+    note: note || '',
+    lat: event.latlng.lat,
+    lng: event.latlng.lng
   });
 
-  saveData();
-  drawMarkers();
-  adding=false;
-  document.getElementById('add').classList.remove('active');
-  statusBox.textContent='Plass lagret!';
+  if (saveData()) {
+    drawMarkers();
+    adding = false;
+    document.getElementById('add').classList.remove('active');
+    statusBox.textContent = 'Plass lagret på denne enheten';
+  } else {
+    saved.pop();
+  }
 });
 
-document.getElementById('gps').onclick=function(){
-  if(!navigator.geolocation){
-    alert('GPS støttes ikke.');
+// ---------- GPS ----------
+document.getElementById('gps').onclick = function() {
+  if (!navigator.geolocation) {
+    alert('GPS støttes ikke i denne nettleseren.');
     return;
   }
 
-  navigator.geolocation.getCurrentPosition(pos=>{
-    const lat=pos.coords.latitude;
-    const lng=pos.coords.longitude;
-    map.setView([lat,lng],16);
+  statusBox.textContent = 'Henter GPS-posisjon …';
+  navigator.geolocation.getCurrentPosition(position => {
+    const lat = position.coords.latitude;
+    const lng = position.coords.longitude;
+    map.setView([lat, lng], 16);
 
-    L.circleMarker([lat,lng],{
-      radius:9,
-      color:'#fff',
-      weight:3,
-      fillColor:'#2679e8',
-      fillOpacity:1
+    if (gpsMarker) map.removeLayer(gpsMarker);
+    gpsMarker = L.circleMarker([lat, lng], {
+      radius: 9,
+      color: '#ffffff',
+      weight: 3,
+      fillColor: '#2679e8',
+      fillOpacity: 1
     }).addTo(map).bindPopup('Din posisjon').openPopup();
 
-  },()=>{
-    alert('Fikk ikke tilgang til GPS. Kontroller stedstjenester.');
-  },{
-    enableHighAccuracy:true,
-    timeout:15000
+    statusBox.textContent = 'GPS-posisjon funnet';
+  }, error => {
+    const message = error && error.code === 1
+      ? 'GPS-tilgang ble avslått. Tillat stedstjenester for nettleseren.'
+      : 'Fant ikke GPS-posisjonen. Prøv igjen med bedre dekning.';
+    statusBox.textContent = message;
+    alert(message);
+  }, {
+    enableHighAccuracy: true,
+    timeout: 20000,
+    maximumAge: 10000
   });
 };
 
-document.getElementById('layers').onclick=function(){
-  satelliteOn=!satelliteOn;
-
-  if(satelliteOn){
+// ---------- Bytt mellom topografisk kart og satellitt ----------
+document.getElementById('layers').onclick = function() {
+  if (baseLayer === 'topo') {
     map.removeLayer(topo);
     satellite.addTo(map);
-    this.textContent='🗺 Norgeskart';
-    statusBox.textContent='Satellittbilder · Esri';
+    baseLayer = 'satellite';
+    this.textContent = '🗺 Norgeskart';
+    statusBox.textContent = 'Satellittbilder · Esri';
   } else {
     map.removeLayer(satellite);
     topo.addTo(map);
-    this.textContent='🗺 Kartlag';
-    statusBox.textContent='Kartverket · Topografisk kart';
+    baseLayer = 'topo';
+    this.textContent = '🗺 Kartlag';
+    statusBox.textContent = 'Kartverket · Topografisk kart';
   }
+  if (roadsLayer) roadsLayer.bringToFront();
 };
 
-// Hent vegsegmenter, både direkte og fra sekvenser med nøstede veglenker.
-function extractSegments(data) {
-  let items=[];
+// ---------- NVDB V4: koordinater og geometri ----------
+const API_BASE = 'https://nvdbapiles.atlas.vegvesen.no/vegnett/api/v4';
+const API_HEADERS = {
+  'X-Client': 'Skogskart foldym.github.io',
+  'Accept': 'application/json'
+};
+const MUNICIPALITY_NUMBER = '4216'; // Birkenes
+const PAGE_SIZE = 500;
+const MAX_MUNICIPALITY_PAGES = 20;
+const MAX_SEQUENCE_DETAILS = 120;
 
-  if(Array.isArray(data)) items=data;
-  else if(Array.isArray(data?.objekter)) items=data.objekter;
-  else if(Array.isArray(data?.veglenkesekvenser)) items=data.veglenkesekvenser;
-  else if(Array.isArray(data?.features)) items=data.features;
+// NVDB-geometri leveres ofte i EPSG:5973 (ETRS89 / UTM 33N).
+// EPSG:5972 brukes for ETRS89 / UTM 32N. Høydeverdien i WKT ignoreres.
+const CRS_DEFINITIONS = {
+  5973: '+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs',
+  5972: '+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs',
+  25833: '+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs',
+  25832: '+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs',
+  32633: '+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs',
+  32632: '+proj=utm +zone=32 +datum=WGS84 +units=m +no_defs'
+};
 
-  const flat=[];
+Object.entries(CRS_DEFINITIONS).forEach(([code, definition]) => {
+  proj4.defs('EPSG:' + code, definition);
+});
 
-  for(const item of items) {
-    if(item?.geometri?.wkt || item?.geometri?.verdi) {
-      flat.push(item);
-    } else if(Array.isArray(item?.veglenker)) {
-      for(const link of item.veglenker) {
-        flat.push({
-          ...link,
-          vegsystemreferanse:item.vegsystemreferanse || link.vegsystemreferanse,
-          adresse:item.adresse || link.adresse,
-          veglenkesekvensid:item.veglenkesekvensid
-        });
-      }
+function numericSrid(srid) {
+  if (srid === null || srid === undefined || srid === '') return 0;
+  const match = String(srid).match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
+function toLonLat(x, y, srid) {
+  const code = numericSrid(srid);
+
+  // GeoJSON/Leaflet bruker [lengdegrad, breddegrad].
+  if (code === 4326 || (!code && Math.abs(x) <= 180 && Math.abs(y) <= 90)) {
+    return [x, y];
+  }
+
+  const source = CRS_DEFINITIONS[code];
+  if (!source) {
+    throw new Error('Ukjent koordinatsystem fra NVDB: EPSG:' + code);
+  }
+
+  const point = proj4('EPSG:' + code, 'EPSG:4326', [x, y]);
+  if (!Number.isFinite(point[0]) || !Number.isFinite(point[1]) ||
+      Math.abs(point[0]) > 180 || Math.abs(point[1]) > 90) {
+    throw new Error('Koordinatkonverteringen ga ugyldige koordinater for EPSG:' + code);
+  }
+  return [point[0], point[1]];
+}
+
+// Leser LINESTRING Z og MULTILINESTRING Z. Z/M-koordinater ignoreres.
+function parseWktLines(wkt) {
+  if (typeof wkt !== 'string') return [];
+  const firstParen = wkt.indexOf('(');
+  const lastParen = wkt.lastIndexOf(')');
+  if (firstParen < 0 || lastParen <= firstParen) return [];
+
+  const body = wkt.slice(firstParen);
+  const groups = [...body.matchAll(/\(([^()]+)\)/g)].map(match => match[1]);
+  if (!groups.length) return [];
+
+  return groups.map(group => group.split(',').map(pair => {
+    const values = pair.trim().split(/\s+/).map(Number);
+    if (values.length < 2 || !Number.isFinite(values[0]) || !Number.isFinite(values[1])) return null;
+    return [values[0], values[1]];
+  }).filter(Boolean)).filter(line => line.length >= 2);
+}
+
+function geometryToLines(geometry) {
+  if (!geometry) return [];
+  const wkt = geometry.wkt || geometry.verdi || geometry.WKT;
+  const rawLines = parseWktLines(wkt);
+  if (!rawLines.length) return [];
+  const srid = geometry.srid || geometry.SRID || 5973;
+  return rawLines.map(line => line.map(point => toLonLat(point[0], point[1], srid)));
+}
+
+function linesIntersectBounds(lines, bounds) {
+  let minLat = Infinity, minLng = Infinity, maxLat = -Infinity, maxLng = -Infinity;
+  for (const line of lines) {
+    for (const point of line) {
+      const lng = point[0];
+      const lat = point[1];
+      minLat = Math.min(minLat, lat);
+      maxLat = Math.max(maxLat, lat);
+      minLng = Math.min(minLng, lng);
+      maxLng = Math.max(maxLng, lng);
     }
   }
-  return flat;
+  if (!Number.isFinite(minLat)) return false;
+  return maxLat >= bounds.getSouth() && minLat <= bounds.getNorth() &&
+    maxLng >= bounds.getWest() && minLng <= bounds.getEast();
 }
 
-// Leser LINESTRING og MULTILINESTRING fra WKT.
-function parseWktLines(wkt) {
-  if(typeof wkt!=='string') return [];
-
-  const groups=[...wkt.matchAll(/\(([^()]+)\)/g)].map(m=>m[1]);
-  if(!groups.length) return [];
-
-  return groups.map(group=>
-    group.split(',').map(pair=>{
-      const nums=pair.trim().split(/\s+/).map(Number);
-      if(nums.length<2 ||
-         !Number.isFinite(nums[0]) ||
-         !Number.isFinite(nums[1])) return null;
-      return [nums[0],nums[1]];
-    }).filter(Boolean)
-  ).filter(line=>line.length>=2);
+function getSequenceRows(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.objekter)) return data.objekter;
+  if (Array.isArray(data?.veglenkesekvenser)) return data.veglenkesekvenser;
+  return [];
 }
 
-// Gjør om NVDB-koordinater til lengdegrad/breddegrad.
-function toLonLat(x,y,srid) {
-  if (
-    Math.abs(x) <= 180 &&
-    Math.abs(y) <= 90
-  ) {
-    return [x,y];
+function sequenceId(sequence) {
+  const id = sequence?.veglenkesekvensid ?? sequence?.id;
+  return id === undefined || id === null ? '' : String(id);
+}
+
+function getRawSequenceLines(sequence) {
+  const links = Array.isArray(sequence?.veglenker) ? sequence.veglenker : [];
+  const result = [];
+  for (const link of links) {
+    let lines = [];
+    try { lines = geometryToLines(link?.geometri); }
+    catch (error) { console.warn('Kunne ikke lese veglenkegeometri:', error); }
+    if (lines.length) {
+      result.push({
+        lines,
+        category: sequence?.vegsystemreferanse?.vegsystem?.vegkategori || 'U',
+        reference: sequence?.vegsystemreferanse?.kortform || '',
+        name: sequence?.adresse?.navn || '',
+        roadType: link?.typeVeg || '',
+        length: link?.lengde || 0,
+        fallback: true
+      });
+    }
   }
-
-  throw new Error(
-    'NVDB leverte projiserte koordinater ('+
-    x+', '+y+
-    ') i stedet for lengdegrad/breddegrad. SRID: '+srid
-  );
-}
-  return segment?.vegsystemreferanse?.vegsystem?.vegkategori ||
-    segment?.vegsystemreferanse?.vegkategori || 'U';
+  return result;
 }
 
-function roadCategoryName(category) {
+function categoryOf(segment) {
+  const category = segment?.vegsystemreferanse?.vegsystem?.vegkategori ||
+    segment?.vegsystemreferanse?.vegkategori ||
+    segment?.vegkategori || 'U';
+  return String(category).toUpperCase();
+}
+
+function categoryName(category) {
   return ({
-    E:'Europavei',
-    R:'Riksvei',
-    F:'Fylkesvei',
-    K:'Kommunal vei',
-    P:'Privat vei',
-    S:'Skogsbilvei',
-    U:'Ukjent vegkategori'
+    E: 'Europavei',
+    R: 'Riksvei',
+    F: 'Fylkesvei',
+    K: 'Kommunal vei',
+    P: 'Privat vei',
+    S: 'Skogsbilvei',
+    U: 'Ukjent vegkategori'
   })[category] || 'Ukjent vegkategori';
 }
 
-// Tydelige farger og tykkere linjer som er lettere å trykke på.
 function roadStyle(category) {
-  if(category==='P')
-    return {color:'#ff9d22',weight:8,opacity:1,lineCap:'round',lineJoin:'round'};
+  if (category === 'P') return { color: '#ff941f', weight: 6, opacity: 1, lineCap: 'round', lineJoin: 'round' };
+  if (category === 'S') return { color: '#39d477', weight: 6, opacity: 1, lineCap: 'round', lineJoin: 'round' };
+  if (category === 'E' || category === 'R') return { color: '#2685ff', weight: 6, opacity: 1, lineCap: 'round', lineJoin: 'round' };
+  if (category === 'F' || category === 'K') return { color: '#e4edf4', weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round' };
+  return { color: '#e66bdc', weight: 5, opacity: 1, dashArray: '6 4', lineCap: 'round', lineJoin: 'round' };
+}
 
-  if(category==='S')
-    return {color:'#42c66b',weight:8,opacity:1,lineCap:'round',lineJoin:'round'};
+function featureFromSegment(segment, fallbackSequenceId) {
+  let lines = [];
+  try { lines = geometryToLines(segment?.geometri); }
+  catch (error) { console.warn('Kunne ikke lese segmentgeometri:', error); return null; }
+  if (!lines.length) return null;
+  const category = categoryOf(segment);
+  return {
+    type: 'Feature',
+    geometry: {
+      type: 'MultiLineString',
+      coordinates: lines
+    },
+    properties: {
+      category,
+      categoryName: categoryName(category),
+      reference: segment?.vegsystemreferanse?.kortform || segment?.referanse || '',
+      address: segment?.adresse?.navn || '',
+      roadType: segment?.typeVeg || '',
+      sequenceId: segment?.veglenkesekvensid || fallbackSequenceId || '',
+      length: Number(segment?.lengde || segment?.geometri?.lengde || 0),
+      startDate: segment?.metadata?.startdato || segment?.startdato || '',
+      fallback: false
+    }
+  };
+}
 
-  if(category==='E' || category==='R')
-    return {color:'#2485f5',weight:7,opacity:1,lineCap:'round',lineJoin:'round'};
+function featureFromRaw(raw, id) {
+  return {
+    type: 'Feature',
+    geometry: { type: 'MultiLineString', coordinates: raw.lines },
+    properties: {
+      category: raw.category || 'U',
+      categoryName: categoryName(raw.category || 'U'),
+      reference: raw.reference || '',
+      address: raw.name || '',
+      roadType: raw.roadType || '',
+      sequenceId: id || '',
+      length: Number(raw.length || 0),
+      fallback: true
+    }
+  };
+}
 
-  if(category==='F' || category==='K')
-    return {color:'#c7d3dc',weight:7,opacity:1,lineCap:'round',lineJoin:'round'};
+async function fetchJson(url) {
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: API_HEADERS,
+    cache: 'no-store'
+  });
+  if (!response.ok) {
+    let detail = '';
+    try { detail = await response.text(); } catch (error) { /* no-op */ }
+    throw new Error('HTTP ' + response.status + (detail ? ' – ' + detail.slice(0, 220) : ''));
+  }
+  return response.json();
+}
 
-  return {color:'#d66bdb',weight:7,opacity:1,dashArray:'5 4',lineCap:'round',lineJoin:'round'};
+function makeSequenceListUrl(bounds) {
+  const params = new URLSearchParams();
+  params.set('kartutsnitt', [
+    bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()
+  ].map(value => value.toFixed(6)).join(','));
+  params.set('srid', '4326');
+  params.set('antall', String(PAGE_SIZE));
+  params.set('inkluderAntall', 'false');
+  params.set('kommune', MUNICIPALITY_NUMBER);
+  return API_BASE + '/veglenkesekvenser?' + params.toString();
+}
+
+function makeMunicipalityListUrl() {
+  const params = new URLSearchParams();
+  params.set('kommune', MUNICIPALITY_NUMBER);
+  params.set('srid', '4326');
+  params.set('antall', String(PAGE_SIZE));
+  params.set('inkluderAntall', 'false');
+  return API_BASE + '/veglenkesekvenser?' + params.toString();
+}
+
+function normalizeNextUrl(href) {
+  const next = new URL(href, 'https://nvdbapiles.atlas.vegvesen.no');
+  if (next.origin !== 'https://nvdbapiles.atlas.vegvesen.no') {
+    throw new Error('NVDB returnerte en uventet sideadresse. Avbrøt av sikkerhetshensyn.');
+  }
+  // V4 metadata.neste.href kan være uversjonert. Bruk lenken API-et selv returnerer.
+  return next.toString();
+}
+
+async function collectCandidateSequences(bounds) {
+  let usedMunicipalityFallback = false;
+  let firstData;
+  let firstUrl = makeSequenceListUrl(bounds);
+
+  try {
+    firstData = await fetchJson(firstUrl);
+  } catch (error) {
+    // Noen oppsett kan avvise kartutsnitt-filteret. Da søker vi i Birkenes
+    // og avgrenser geometrien lokalt i nettleseren.
+    console.warn('NVDB avviste kartutsnitt-filteret. Prøver kommune-filter.', error);
+    usedMunicipalityFallback = true;
+    firstUrl = makeMunicipalityListUrl();
+    firstData = await fetchJson(firstUrl);
+  }
+
+  let pageData = firstData;
+  let nextUrl = pageData?.metadata?.neste?.href || '';
+  const byId = new Map();
+  let pagesRead = 0;
+
+  async function addVisibleRows(data) {
+    const rows = getSequenceRows(data);
+    for (const sequence of rows) {
+      const id = sequenceId(sequence);
+      if (!id || byId.has(id)) continue;
+
+      const rawLines = getRawSequenceLines(sequence);
+      const visibleRawLines = rawLines.filter(item => linesIntersectBounds(item.lines, bounds));
+      if (visibleRawLines.length) {
+        byId.set(id, { id, sequence, rawLines: visibleRawLines });
+      }
+    }
+  }
+
+  await addVisibleRows(pageData);
+  pagesRead++;
+
+  // Dersom filteret godtas, men ikke gir lesbar geometri, gjør vi et nytt
+  // søk med kjent kommune-filter i stedet for å ende med et blankt veilag.
+  if (!byId.size && !usedMunicipalityFallback) {
+    usedMunicipalityFallback = true;
+    firstUrl = makeMunicipalityListUrl();
+    firstData = await fetchJson(firstUrl);
+    pageData = firstData;
+    nextUrl = pageData?.metadata?.neste?.href || '';
+    await addVisibleRows(pageData);
+    pagesRead = 1;
+  }
+
+  // BBox-søk trenger vanligvis bare én side. Ved kommune-fallback leser vi
+  // flere sider fordi veiene ikke nødvendigvis sorteres geografisk.
+  const maxPages = usedMunicipalityFallback ? MAX_MUNICIPALITY_PAGES : 5;
+  while (nextUrl && pagesRead < maxPages && byId.size < MAX_SEQUENCE_DETAILS) {
+    const currentNext = normalizeNextUrl(nextUrl);
+    pageData = await fetchJson(currentNext);
+    await addVisibleRows(pageData);
+    pagesRead++;
+    nextUrl = pageData?.metadata?.neste?.href || '';
+  }
+
+  return {
+    sequences: [...byId.values()].slice(0, MAX_SEQUENCE_DETAILS),
+    pagesRead,
+    municipalityFallback: usedMunicipalityFallback,
+    mayBePartial: Boolean(nextUrl) || (usedMunicipalityFallback && pagesRead >= maxPages)
+  };
+}
+
+async function fetchSegmentDetails(sequenceIdValue) {
+  const baseUrl = API_BASE + '/veglenkesekvenser/segmentert/' + encodeURIComponent(sequenceIdValue);
+  try {
+    return await fetchJson(baseUrl + '?srid=4326');
+  } catch (error) {
+    // Enkelte API-varianter kan returnere standard-SRID uten srid-parameter.
+    // Prøv derfor samme dokumenterte ID-endepunkt uten parameter før vi gir opp.
+    if (String(error.message).includes('HTTP 400')) {
+      return fetchJson(baseUrl);
+    }
+    throw error;
+  }
+}
+
+function getDetailSegments(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.objekter)) return data.objekter;
+  if (Array.isArray(data?.veglenker)) return data.veglenker;
+  return [];
+}
+
+async function mapWithConcurrency(items, limit, worker) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  const workerCount = Math.min(limit, items.length);
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (true) {
+      const index = nextIndex++;
+      if (index >= items.length) return;
+      try {
+        results[index] = await worker(items[index], index);
+      } catch (error) {
+        results[index] = { error };
+      }
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+function removeRoadLayers() {
+  if (roadsLayer) map.removeLayer(roadsLayer);
+  roadsLayer = null;
+  roadsVisible = false;
+  legendBox.style.display = 'none';
+  roadsButton.classList.remove('active');
+  roadsButton.textContent = '🛣 Veier';
+}
+
+function renderRoadFeatures(features, boundsKey, diagnostics) {
+  if (!features.length) {
+    throw new Error('NVDB svarte, men fant ingen veglinjer i dette kartutsnittet. Sjekk at kartet står over Birkeland og prøv igjen.');
+  }
+
+  roadsLayer = L.geoJSON({ type: 'FeatureCollection', features }, {
+    attribution: 'Inneholder data under norsk lisens for offentlige data (NLOD) tilgjengeliggjort av Statens vegvesen.',
+    style: feature => roadStyle(feature.properties.category),
+    bubblingMouseEvents: false,
+    onEachFeature: (feature, layer) => {
+      const p = feature.properties;
+      const info = [
+        '<b>' + escapeText(p.categoryName || 'Ukjent vegkategori') + '</b>',
+        p.address ? escapeText(p.address) : '',
+        p.reference ? escapeText(p.reference) : '',
+        p.roadType ? 'Vegtype: ' + escapeText(p.roadType) : '',
+        p.length > 0 ? 'Segmentlengde: ' + Math.round(p.length) + ' m' : '',
+        p.sequenceId ? 'NVDB veglenkesekvens: ' + escapeText(p.sequenceId) : '',
+        p.fallback ? '<small>Foreløpig veglinje – kategori ikke hentet</small>' : '<small>Datakilde: NVDB V4</small>'
+      ].filter(Boolean).join('<br>');
+      layer.bindPopup(info, { closeButton: true, autoPan: true, maxWidth: 260 });
+      layer.on('mouseover', () => layer.setStyle({ weight: 9 }));
+      layer.on('mouseout', () => layer.setStyle(roadStyle(p.category)));
+    }
+  }).addTo(map);
+
+  roadsLayer.bringToFront();
+  roadsVisible = true;
+  roadsNeedRefresh = false;
+  roadsBoundsKey = boundsKey;
+  legendBox.style.display = 'block';
+  roadsButton.classList.add('active');
+  roadsButton.textContent = '🛣 Skjul veier';
+
+  const counts = {};
+  let fallbackCount = 0;
+  for (const feature of features) {
+    const key = feature.properties.category || 'U';
+    counts[key] = (counts[key] || 0) + 1;
+    if (feature.properties.fallback) fallbackCount++;
+  }
+  const countText = Object.entries(counts).map(([key, value]) => key + ': ' + value).join(' · ');
+  statusBox.textContent = 'NVDB: ' + features.length + ' veglinjer · ' + countText +
+    (fallbackCount ? ' · ' + fallbackCount + ' uten detaljkategori' : '') +
+    (diagnostics.mayBePartial ? ' · Mulig ufullstendig utsnitt' : '') +
+    ' · Trykk på en linje for info.';
 }
 
 async function loadRoads() {
-  const button=document.getElementById('roads');
+  if (roadsLoading) return;
+  const currentBoundsKey = map.getBounds().toBBoxString();
 
-  if(roadsLoading) return;
-
-  if(roadsVisible && roadsLayer) {
-    map.removeLayer(roadsLayer);
-    roadsVisible=false;
-    document.getElementById('legend').style.display='none';
-    button.classList.remove('active');
-    button.textContent='🛣 Veier';
-    statusBox.textContent='Veilaget er skjult';
+  if (roadsLayer && !roadsNeedRefresh && roadsBoundsKey === currentBoundsKey) {
+    if (roadsVisible) {
+      map.removeLayer(roadsLayer);
+      roadsVisible = false;
+      legendBox.style.display = 'none';
+      roadsButton.classList.remove('active');
+      roadsButton.textContent = '🛣 Veier';
+      statusBox.textContent = 'NVDB-veier skjult';
+    } else {
+      roadsLayer.addTo(map);
+      roadsLayer.bringToFront();
+      roadsVisible = true;
+      legendBox.style.display = 'block';
+      roadsButton.classList.add('active');
+      roadsButton.textContent = '🛣 Skjul veier';
+      statusBox.textContent = 'NVDB-veier vises · Trykk på en linje for info.';
+    }
     return;
   }
 
-  if(roadsLayer) {
-    roadsLayer.addTo(map);
-    roadsLayer.bringToFront();
-    roadsVisible=true;
-    document.getElementById('legend').style.display='block';
-    button.classList.add('active');
-    button.textContent='🛣 Skjul veier';
-    statusBox.textContent='NVDB-veier vises. Trykk på en farget linje for informasjon.';
-    return;
-  }
-
-  roadsLoading=true;
-  button.disabled=true;
-  statusBox.textContent='Henter veglinjer fra NVDB …';
+  removeRoadLayers();
+  roadsLoading = true;
+  roadsButton.disabled = true;
+  statusBox.textContent = 'Henter veglenker fra NVDB for dette kartutsnittet …';
 
   try {
-    const bounds=map.getBounds();
+    if (typeof proj4 !== 'function') {
+      throw new Error('Koordinatbiblioteket proj4 ble ikke lastet. Oppdater siden og prøv igjen.');
+    }
 
-    const bbox=[
-      bounds.getWest(),
-      bounds.getSouth(),
-      bounds.getEast(),
-      bounds.getNorth()
-    ].map(n=>n.toFixed(6)).join(',');
+    const bounds = map.getBounds();
+    const boundsKey = bounds.toBBoxString();
+    const diagnostics = await collectCandidateSequences(bounds);
+    const candidates = diagnostics.sequences;
 
-    const params=new URLSearchParams({
-  kommune:'4216',
-  srid:'4326',
-  antall:'1000',
-  inkluderAntall:'false'
-});
+    if (!candidates.length) {
+      throw new Error('Fant ingen veglenkesekvenser i kartutsnittet. Sjekk at kartet står over Birkeland og prøv igjen.');
+    }
 
-const url=
-  'https://nvdbapiles.atlas.vegvesen.no/vegnett/api/v4/veglenkesekvenser?'+
-  params.toString();
-    const response=await fetch(url,{
-      method:'GET',
-      headers:{
-        'X-Client':'Skogskart foldym.github.io',
-        'Accept':'application/json'
+    statusBox.textContent = 'Fant ' + candidates.length + ' veglenkesekvenser. Henter vegkategori og segmenter …';
+
+    const detailResults = await mapWithConcurrency(candidates, 5, async candidate => {
+      const data = await fetchSegmentDetails(candidate.id);
+      return getDetailSegments(data);
+    });
+
+    const features = [];
+    let detailSuccess = 0;
+    let detailFailure = 0;
+
+    detailResults.forEach((result, index) => {
+      const candidate = candidates[index];
+      if (result && !result.error && result.length) {
+        let added = 0;
+        for (const segment of result) {
+          const feature = featureFromSegment(segment, candidate.id);
+          if (!feature) continue;
+          const latLngLines = feature.geometry.coordinates;
+          if (!linesIntersectBounds(latLngLines, bounds)) continue;
+          features.push(feature);
+          added++;
+        }
+        if (added) detailSuccess++;
+        else {
+          // Hvis segmentendepunktet ikke ga brukbar geometri i området,
+          // viser vi original veggeometri som ukategorisert i stedet for blankt kart.
+          candidate.rawLines.forEach(raw => features.push(featureFromRaw(raw, candidate.id)));
+          detailFailure++;
+        }
+      } else {
+        candidate.rawLines.forEach(raw => features.push(featureFromRaw(raw, candidate.id)));
+        detailFailure++;
       }
     });
 
-    if(!response.ok) {
-      const detail=await response.text().catch(()=> '');
-      throw new Error(
-        'NVDB svarte HTTP '+response.status+
-        (detail?' – '+detail.slice(0,180):'')
-      );
+    const unique = new Map();
+    features.forEach(feature => {
+      const p = feature.properties;
+      const coords = feature.geometry.coordinates;
+      const first = coords[0]?.[0] || [0, 0];
+      const last = coords[0]?.[coords[0].length - 1] || [0, 0];
+      const key = [p.sequenceId, p.reference, p.category, first.join(','), last.join(',')].join('|');
+      if (!unique.has(key)) unique.set(key, feature);
+    });
+
+    const finalFeatures = [...unique.values()];
+    diagnostics.detailSuccess = detailSuccess;
+    diagnostics.detailFailure = detailFailure;
+    renderRoadFeatures(finalFeatures, boundsKey, diagnostics);
+
+    if (detailFailure) {
+      statusBox.textContent += ' · Detaljer utilgjengelig for ' + detailFailure + ' sekvenser; disse vises uten kategori.';
     }
-
-    const data=await response.json();
-    const segments=extractSegments(data);
-    const features=[];
-    const srids={};
-    const counts={};
-
-    for(const segment of segments) {
-      const geometry=segment?.geometri;
-      const wkt=geometry?.wkt || geometry?.verdi;
-      const lines=parseWktLines(wkt);
-
-      if(!lines.length) continue;
-
-      const firstPair=lines[0][0];
-      const inferredSrid=
-        (Math.abs(firstPair[0])<=180 && Math.abs(firstPair[1])<=90)
-        ?4326:5973;
-      const srid=geometry?.srid || inferredSrid;
-
-      srids[srid]=(srids[srid]||0)+1;
-
-      const category=roadCategory(segment);
-      counts[category]=(counts[category]||0)+1;
-
-      const converted=lines.map(line=>
-        line.map(pair=>toLonLat(pair[0],pair[1],srid))
-      );
-
-      features.push({
-        type:'Feature',
-        geometry:{
-          type:'MultiLineString',
-          coordinates:converted
-        },
-        properties:{
-          category:category,
-          name:roadCategoryName(category),
-          reference:segment?.vegsystemreferanse?.kortform || '',
-          address:segment?.adresse?.navn || '',
-          roadType:segment?.typeVeg || '',
-          length:segment?.lengde || geometry?.lengde || null,
-          srid:srid
-        }
-      });
-    }
-
-    if(!features.length) {
-      const count=Array.isArray(data?.objekter)
-        ?data.objekter.length
-        :Array.isArray(data)?data.length:0;
-
-      throw new Error(
-        'NVDB svarte, men fant ingen brukbare veglinjer. Poster mottatt: '+
-        count+'. Se eventuelle API-detaljer i konsollen.'
-      );
-    }
-
-    roadsLayer=L.geoJSON({
-      type:'FeatureCollection',
-      features:features
-    },{
-      pane:'overlayPane',
-      attribution:'Data: Statens vegvesen / NVDB · NLOD',
-      style:feature=>roadStyle(feature.properties.category),
-
-      onEachFeature:(feature,layer)=>{
-        const p=feature.properties;
-
-        const details=[
-          '<b>'+escapeText(p.name)+'</b>',
-          p.address?escapeText(p.address):'',
-          p.reference?escapeText(p.reference):'',
-          p.roadType?'Vegtype: '+escapeText(p.roadType):'',
-          p.length?'Lengde på segment: '+Math.round(p.length)+' m':'',
-          '<small>Datakilde: NVDB</small>'
-        ].filter(Boolean).join('<br>');
-
-        layer.bindPopup(details,{closeButton:true,autoPan:true});
-
-        layer.on('mouseover',()=>{
-          layer.setStyle({...roadStyle(p.category),weight:11});
-        });
-
-        layer.on('mouseout',()=>{
-          layer.setStyle(roadStyle(p.category));
-        });
-      }
-    }).addTo(map);
-
-    roadsLayer.bringToFront();
-    roadsVisible=true;
-    document.getElementById('legend').style.display='block';
-    button.classList.add('active');
-    button.textContent='🛣 Skjul veier';
-
-    const categorySummary=Object.entries(counts)
-      .map(([key,val])=>key+': '+val).join(' · ');
-    const sridSummary=Object.keys(srids).join(', ');
-
-    statusBox.textContent=
-      'NVDB: '+features.length+' veglinjer · EPSG '+sridSummary+
-      ' · '+categorySummary+
-      ' · Trykk på linjen for detaljer.';
-
-  } catch(error) {
-    console.error('Skogskart NVDB-feil:',error);
-    statusBox.textContent='NVDB-feil: '+error.message;
-
-    alert(
-      'Kunne ikke vise NVDB-veiene.\n\n'+
-      error.message+
-      '\n\nKartet og de lagrede stedene er beholdt.'
-    );
-
+  } catch (error) {
+    console.error('Skogskart NVDB-feil:', error);
+    removeRoadLayers();
+    statusBox.textContent = 'NVDB-feil: ' + error.message;
+    alert('Kunne ikke vise NVDB-veiene.\n\n' + error.message + '\n\nKartet og lagrede steder er beholdt.');
   } finally {
-    roadsLoading=false;
-    button.disabled=false;
+    roadsLoading = false;
+    roadsButton.disabled = false;
   }
 }
 
-document.getElementById('roads').onclick=loadRoads;
+roadsButton.onclick = loadRoads;
+
+// Når brukeren flytter kartet, må veilaget hentes på nytt for det nye utsnittet.
+map.on('moveend', function() {
+  if (roadsLayer && roadsBoundsKey && map.getBounds().toBBoxString() !== roadsBoundsKey) {
+    roadsNeedRefresh = true;
+    roadsButton.textContent = '🛣 Oppdater veier';
+    statusBox.textContent = 'Kartutsnitt endret. Trykk «Oppdater veier» for å hente veiene her.';
+  }
+});
+
+// Vis lagrede steder når appen starter.
 drawMarkers();
 </script>
 </body>
