@@ -243,28 +243,19 @@ function parseWktLines(wkt) {
 
 // Gjør om NVDB-koordinater til lengdegrad/breddegrad.
 function toLonLat(x,y,srid) {
-  const code=Number(srid);
-
-  if(code===4326) return [x,y];
-
-  let source='EPSG:5973';
-
-  if(code===25832 || code===32632) {
-    source='EPSG:'+code;
-  } else if(
-    code===25833 || code===32633 ||
-    code===6173 || code===5973
+  if (
+    Math.abs(x) <= 180 &&
+    Math.abs(y) <= 90
   ) {
-    source='EPSG:'+code;
-  } else if(code) {
-    throw new Error('Ukjent koordinatsystem i NVDB-dataene: EPSG:'+code);
+    return [x,y];
   }
 
-  const point=proj4(source,'EPSG:4326',[x,y]);
-  return [point[0],point[1]];
+  throw new Error(
+    'NVDB leverte projiserte koordinater ('+
+    x+', '+y+
+    ') i stedet for lengdegrad/breddegrad. SRID: '+srid
+  );
 }
-
-function roadCategory(segment) {
   return segment?.vegsystemreferanse?.vegsystem?.vegkategori ||
     segment?.vegsystemreferanse?.vegkategori || 'U';
 }
